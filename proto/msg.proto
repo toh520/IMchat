@@ -1,16 +1,29 @@
-syntax = "proto3"; // 指定使用 proto3 语法 (Modern Standard)
+syntax = "proto3";
 
-package chat; // 相当于 C++ 的 namespace chat
+package chat; // 命名空间
 
-// 登录请求
+// 1. 登录请求
 message LoginRequest {
-    string username = 1; // 字段 1: 用户名
-    string password = 2; // 字段 2: 密码
+    string username = 1; // 用户名
+    string password = 2; // 密码
 }
 
-// 登录响应
+// 2. 登录响应
 message LoginResponse {
     bool success = 1;    // 是否成功
-    string msg = 2;      // 错误信息或成功提示
-    int32 uid = 3;       // 用户 ID (分配给用户的唯一标识)
+    string msg = 2;      // 错误信息
+    int32 uid = 3;       // 用户 ID
+}
+
+// 3. 注册请求 (新增)
+message RegRequest {
+    string username = 1;
+    string password = 2;
+}
+
+// 4. 注册响应 (新增)
+message RegResponse {
+    bool success = 1;
+    int32 uid = 2;       // 注册成功返回 ID
+    string msg = 3;
 }
