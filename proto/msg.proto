@@ -27,3 +27,10 @@ message RegResponse {
     int32 uid = 2;       // 注册成功返回 ID
     string msg = 3;
 }
+
+// 5. 聊天消息 (新增)
+message OneChatRequest {
+    int32 from_id = 1;   // 发送者ID
+    int32 to_id = 2;     // 接收者ID
+    string msg = 3;      // 消息内容
+}

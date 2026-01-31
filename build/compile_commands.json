@@ -16,6 +16,11 @@
 },
 {
   "directory": "/home/toh/ChatServer/build",
+  "command": "/usr/bin/g++  -I/home/toh/ChatServer/include -I/home/toh/ChatServer/proto -g -std=gnu++17 -o CMakeFiles/ChatServer.dir/src/db/Redis.cpp.o -c /home/toh/ChatServer/src/db/Redis.cpp",
+  "file": "/home/toh/ChatServer/src/db/Redis.cpp"
+},
+{
+  "directory": "/home/toh/ChatServer/build",
   "command": "/usr/bin/g++  -I/home/toh/ChatServer/include -I/home/toh/ChatServer/proto -g -std=gnu++17 -o CMakeFiles/ChatServer.dir/src/main.cpp.o -c /home/toh/ChatServer/src/main.cpp",
   "file": "/home/toh/ChatServer/src/main.cpp"
 },
@@ -53,5 +58,10 @@
   "directory": "/home/toh/ChatServer/build",
   "command": "/usr/bin/g++  -I/home/toh/ChatServer/include -I/home/toh/ChatServer/proto -g -std=gnu++17 -o CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.o -c /home/toh/ChatServer/src/server/model/UserModel.cpp",
   "file": "/home/toh/ChatServer/src/server/model/UserModel.cpp"
+},
+{
+  "directory": "/home/toh/ChatServer/build",
+  "command": "/usr/bin/g++  -I/home/toh/ChatServer/include -I/home/toh/ChatServer/proto -g -std=gnu++17 -o CMakeFiles/ChatServer.dir/src/server/model/offlinemessagemodel.cpp.o -c /home/toh/ChatServer/src/server/model/offlinemessagemodel.cpp",
+  "file": "/home/toh/ChatServer/src/server/model/offlinemessagemodel.cpp"
 }
 ]

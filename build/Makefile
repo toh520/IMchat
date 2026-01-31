@@ -201,6 +201,30 @@ src/db/ConnectionPool.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/db/ConnectionPool.cpp.s
 .PHONY : src/db/ConnectionPool.cpp.s
 
+src/db/Redis.o: src/db/Redis.cpp.o
+.PHONY : src/db/Redis.o
+
+# target to build an object file
+src/db/Redis.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/db/Redis.cpp.o
+.PHONY : src/db/Redis.cpp.o
+
+src/db/Redis.i: src/db/Redis.cpp.i
+.PHONY : src/db/Redis.i
+
+# target to preprocess a source file
+src/db/Redis.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/db/Redis.cpp.i
+.PHONY : src/db/Redis.cpp.i
+
+src/db/Redis.s: src/db/Redis.cpp.s
+.PHONY : src/db/Redis.s
+
+# target to generate assembly for a file
+src/db/Redis.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/db/Redis.cpp.s
+.PHONY : src/db/Redis.cpp.s
+
 src/main.o: src/main.cpp.o
 .PHONY : src/main.o
 
@@ -393,6 +417,30 @@ src/server/model/UserModel.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.s
 .PHONY : src/server/model/UserModel.cpp.s
 
+src/server/model/offlinemessagemodel.o: src/server/model/offlinemessagemodel.cpp.o
+.PHONY : src/server/model/offlinemessagemodel.o
+
+# target to build an object file
+src/server/model/offlinemessagemodel.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/server/model/offlinemessagemodel.cpp.o
+.PHONY : src/server/model/offlinemessagemodel.cpp.o
+
+src/server/model/offlinemessagemodel.i: src/server/model/offlinemessagemodel.cpp.i
+.PHONY : src/server/model/offlinemessagemodel.i
+
+# target to preprocess a source file
+src/server/model/offlinemessagemodel.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/server/model/offlinemessagemodel.cpp.i
+.PHONY : src/server/model/offlinemessagemodel.cpp.i
+
+src/server/model/offlinemessagemodel.s: src/server/model/offlinemessagemodel.cpp.s
+.PHONY : src/server/model/offlinemessagemodel.s
+
+# target to generate assembly for a file
+src/server/model/offlinemessagemodel.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/server/model/offlinemessagemodel.cpp.s
+.PHONY : src/server/model/offlinemessagemodel.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -411,6 +459,9 @@ help:
 	@echo "... src/db/ConnectionPool.o"
 	@echo "... src/db/ConnectionPool.i"
 	@echo "... src/db/ConnectionPool.s"
+	@echo "... src/db/Redis.o"
+	@echo "... src/db/Redis.i"
+	@echo "... src/db/Redis.s"
 	@echo "... src/main.o"
 	@echo "... src/main.i"
 	@echo "... src/main.s"
@@ -435,6 +486,9 @@ help:
 	@echo "... src/server/model/UserModel.o"
 	@echo "... src/server/model/UserModel.i"
 	@echo "... src/server/model/UserModel.s"
+	@echo "... src/server/model/offlinemessagemodel.o"
+	@echo "... src/server/model/offlinemessagemodel.i"
+	@echo "... src/server/model/offlinemessagemodel.s"
 .PHONY : help
 
 

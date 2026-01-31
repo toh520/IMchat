@@ -11,6 +11,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/toh/ChatServer/proto/msg.pb.cc" "CMakeFiles/ChatServer.dir/proto/msg.pb.cc.o" "gcc" "CMakeFiles/ChatServer.dir/proto/msg.pb.cc.o.d"
   "/home/toh/ChatServer/src/db/Connection.cpp" "CMakeFiles/ChatServer.dir/src/db/Connection.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/db/Connection.cpp.o.d"
   "/home/toh/ChatServer/src/db/ConnectionPool.cpp" "CMakeFiles/ChatServer.dir/src/db/ConnectionPool.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/db/ConnectionPool.cpp.o.d"
+  "/home/toh/ChatServer/src/db/Redis.cpp" "CMakeFiles/ChatServer.dir/src/db/Redis.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/db/Redis.cpp.o.d"
   "/home/toh/ChatServer/src/main.cpp" "CMakeFiles/ChatServer.dir/src/main.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/main.cpp.o.d"
   "/home/toh/ChatServer/src/net/Buffer.cpp" "CMakeFiles/ChatServer.dir/src/net/Buffer.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/net/Buffer.cpp.o.d"
   "/home/toh/ChatServer/src/net/Epoll.cpp" "CMakeFiles/ChatServer.dir/src/net/Epoll.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/net/Epoll.cpp.o.d"
@@ -19,6 +20,7 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/toh/ChatServer/src/server/ChatServer.cpp" "CMakeFiles/ChatServer.dir/src/server/ChatServer.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/server/ChatServer.cpp.o.d"
   "/home/toh/ChatServer/src/server/chatservice.cpp" "CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.o.d"
   "/home/toh/ChatServer/src/server/model/UserModel.cpp" "CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.o.d"
+  "/home/toh/ChatServer/src/server/model/offlinemessagemodel.cpp" "CMakeFiles/ChatServer.dir/src/server/model/offlinemessagemodel.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/server/model/offlinemessagemodel.cpp.o.d"
   )
 
 # Targets to which this target links.

@@ -7,6 +7,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/ChatServer.dir/src/db/Connection.cpp.o.d"
   "CMakeFiles/ChatServer.dir/src/db/ConnectionPool.cpp.o"
   "CMakeFiles/ChatServer.dir/src/db/ConnectionPool.cpp.o.d"
+  "CMakeFiles/ChatServer.dir/src/db/Redis.cpp.o"
+  "CMakeFiles/ChatServer.dir/src/db/Redis.cpp.o.d"
   "CMakeFiles/ChatServer.dir/src/main.cpp.o"
   "CMakeFiles/ChatServer.dir/src/main.cpp.o.d"
   "CMakeFiles/ChatServer.dir/src/net/Buffer.cpp.o"
@@ -23,6 +25,8 @@ file(REMOVE_RECURSE
   "CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.o.d"
   "CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.o"
   "CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.o.d"
+  "CMakeFiles/ChatServer.dir/src/server/model/offlinemessagemodel.cpp.o"
+  "CMakeFiles/ChatServer.dir/src/server/model/offlinemessagemodel.cpp.o.d"
 )
 
 # Per-language clean rules from dependency scanning.

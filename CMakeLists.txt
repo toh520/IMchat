@@ -23,8 +23,10 @@ file(GLOB_RECURSE SOURCES "src/*.cpp" "proto/*.cc")
 add_executable(ChatServer ${SOURCES})
 
 # [修改] 4. 链接库
+# 此时 hiredis 库会被动态链接
 target_link_libraries(ChatServer 
     Threads::Threads 
     ${Protobuf_LIBRARIES} 
-    mysqlclient  # <--- 必须有这个
+    mysqlclient
+    hiredis # <--- 新增 hiredis 库链接
 )

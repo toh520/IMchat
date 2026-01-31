@@ -21,10 +21,15 @@ public:
     // [新增] 发送数据的方法 (业务层会调用这个)
     // 直接发送 string 数据
     void send(std::string msg);
+    // [新增] 按照协议发送 Header + MsgID + Data
+    void send(int msgid, std::string data);
 
     void setCloseCallback(const CloseCallback& cb) { closeCallback_ = cb; }
 
 private:
+    // 保护发送操作的互斥锁（因为多线程业务可能同时调用 send）
+    std::mutex sendMutex_;
+
     Epoll* epoll_;
     std::unique_ptr<Socket> socket_;
     Buffer readBuffer_;

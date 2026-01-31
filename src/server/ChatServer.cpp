@@ -77,6 +77,10 @@ void ChatServer::handleNewConnection() {
 }
 
 void ChatServer::handleClientDisconnect(int fd) {
+    // [新增] 通知业务层处理客户端异常退出 (比如把用户状态改为 offline)
+    // 这里需要 ChatService 提供一个处理客户端异常退出的接口
+    ChatService::instance()->clientCloseException(connections_[fd]);
+
     // 从 map 中移除，智能指针引用计数归零 -> 自动析构 TcpConnection
     connections_.erase(fd);
     std::cout << "客户端断开，已回收资源 fd=" << fd << " 当前在线: " << connections_.size() << std::endl;

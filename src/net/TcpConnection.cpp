@@ -93,8 +93,37 @@ void TcpConnection::onRead() {
     }
 }
 
+// [新增] 按照自定义协议发送数据: 4字节长度 + 4字节MsgID + Data
+void TcpConnection::send(int msgid, std::string data) {
+    if (socket_->getFd() == -1) return;
+
+    // 1. 计算总长度: MsgID(4字节) + Data长度
+    int32_t len = 4 + data.size();
+    
+    // 2. 将整数转为网络字节序 (大端)
+    int32_t len_net = htonl(len);
+    int32_t msgid_net = htonl(msgid);
+
+    // 3. 组装发送缓冲区
+    std::string sendBuf;
+    sendBuf.resize(4 + 4 + data.size());
+
+    // 填入长度
+    memcpy(sendBuf.data(), &len_net, 4);
+    // 填入MsgID
+    memcpy(sendBuf.data() + 4, &msgid_net, 4);
+    // 填入数据
+    memcpy(sendBuf.data() + 8, data.data(), data.size());
+
+    // 4. 发送 
+    this->send(sendBuf);
+}
+
 // 发送数据的方法
 void TcpConnection::send(std::string msg) {
+    // [新增] 加锁保护，防止多线程同时 write 导致数据错乱
+    std::lock_guard<std::mutex> lock(sendMutex_);
+
     if (socket_->getFd() != -1) {
         ssize_t n = write(socket_->getFd(), msg.c_str(), msg.size());
         if (n == -1) {

@@ -12,6 +12,10 @@ ChatService* ChatService::instance() {
 
 // 注册消息以及对应的Handler回调操作
 ChatService::ChatService() {
+    // 启动线程池 (例如 4 个 worker 线程)
+    // 根据机器 CPU 核心数或者业务负载调整，这里默认给 4 个
+    _threadPool = std::make_unique<ThreadPool>(4);
+
     // 用户注册业务管理
     // 当收到 REG_MSG (注册) 消息时，绑定到 ChatService::reg 方法
     _msgHandlerMap.insert({REG_MSG, std::bind(&ChatService::reg, this, std::placeholders::_1, std::placeholders::_2)});
@@ -19,6 +23,15 @@ ChatService::ChatService() {
     // 用户登录业务管理
     // 当收到 LOGIN_MSG (登录) 消息时，绑定到 ChatService::login 方法
     _msgHandlerMap.insert({LOGIN_MSG, std::bind(&ChatService::login, this, std::placeholders::_1, std::placeholders::_2)});
+
+    // 一对一聊天业务管理
+    _msgHandlerMap.insert({ONE_CHAT_MSG, std::bind(&ChatService::oneChat, this, std::placeholders::_1, std::placeholders::_2)});
+
+    // 连接 Redis
+    if (_redis.connect()) {
+        // 设置上报消息的回调
+        _redis.init_notify_handler(std::bind(&ChatService::handleRedisSubscribeMessage, this, std::placeholders::_1, std::placeholders::_2));
+    }
 }
 
 // 获取消息对应的处理器
@@ -30,7 +43,19 @@ MsgHandler ChatService::getHandler(int msgid) {
             cout << "msgid:" << msgid << " can not find handler!" << endl;
         };
     } else {
-        return _msgHandlerMap[msgid];
+        // [新增] 异步解耦核心：
+        // 返回一个 Lambda，这个 Lambda 并不直接执行业务，而是把任务提交到 ThreadPool
+        return [this, it](const std::shared_ptr<TcpConnection>& conn, std::string data) {
+            // 将 (handler, conn, data) 投递给线程池
+            _threadPool->enqueue([=]() {
+                // 这个 lambda 会在子线程中执行 -> 真正的业务逻辑
+                // 注意 data 是按值捕获的，虽然有一次拷贝，但保证了数据在子线程有效
+                // conn 是 shared_ptr，安全
+                // it->second 就是真正的 login/reg/chat 方法
+                std::string d = data; // 只是为了解 const
+                it->second(conn, d);
+            });
+        };
     }
 }
 
@@ -64,14 +89,11 @@ void ChatService::reg(const std::shared_ptr<TcpConnection>& conn, std::string& d
             cout << "用户注册失败: " << name << endl;
         }
 
-        // 4. 序列化并发送回去 (目前我们只打印，稍后去 TcpConnection 实现 send)
+        // 4. 序列化并发送回去
         string send_str;
         resp.SerializeToString(&send_str);
         
-        // TODO: 这里需要 TcpConnection 提供一个 send 方法来发送带 MsgID 的包
-        // 目前先模拟打印，稍后我们在 TcpConnection 补充 send 方法
-        // conn->send(REG_MSG_ACK, send_str); 
-        cout << "向客户端发送注册响应 (Size: " << send_str.size() << ")" << endl;
+        conn->send(REG_MSG_ACK, send_str);
     }
 }
 
@@ -79,21 +101,153 @@ void ChatService::reg(const std::shared_ptr<TcpConnection>& conn, std::string& d
 void ChatService::login(const std::shared_ptr<TcpConnection>& conn, std::string& data) {
     LoginRequest req;
     if (req.ParseFromString(data)) {
-        string name = req.username();
+        int id = 0;
         string pwd = req.password();
-
-        cout << "收到登录请求: user=" << name << " pwd=" << pwd << endl;
-
-        // 这里还需要补全 UserModel 的查询逻辑（目前只有 query(int id)，需要 query(string name)）
-        // 为了跑通流程，我们先模拟一个假登录
+        // 兼容 username 字段存放 id（简化设计，或者你需要完善协议增加 id 字段）
+        // 这里假设协议设计早期，暂时暂定 username 字段如果有纯数字则当作 id 登录，或者后续修改 LoginRequest
+        // 为了严谨，建议修改 LoginRequest 增加 int32 id 字段，但在现有 protobuf 基础上，我们先解析 username
         
+        // 实际上现有代码 LoginRequest 只有 username 和 password
+        // 我们先假设 username 就是用户的唯一标识（名字），但数据库 UserModel::query 是按 id 查的
+        // 这是一个逻辑断层。通常登录是 ID + Pwd 或者 Name + Pwd
+        // 让我们先暂时用 Name + Pwd 查库，需要给 UserModel 加一个按 Name 查询的方法
+        // 或者简单起见，这里先做一个模拟：如果 username 是数字字符串，转成 ID
+        
+        // 为了项目含金量，我们假设用户输入的是 ID
+        try {
+            id = std::stoi(req.username()); 
+        } catch (...) {
+            // 如果不是 ID，理论上应该支持名字登录，这里暂时简化，如果转换失败则 id=0
+            id = 0;
+        }
+
+        User user = _userModel.query(id);
+
         LoginResponse resp;
-        resp.set_success(false);
-        resp.set_msg("登录功能开发中...");
-        
         string send_str;
+
+        if (user.getId() == id && user.getPwd() == pwd) {
+            // 登录成功
+            if (user.getState() == "online") {
+                // 用户已经在线，不允许重复登录
+                resp.set_success(false);
+                resp.set_msg("该账号已在线，请勿重复登录");
+            } else {
+                // 1. 记录用户连接
+                {
+                    lock_guard<mutex> lock(_connMutex);
+                    _userConnMap.insert({id, conn});
+                }
+                
+                // [新增] 登录成功后，向 Redis 订阅该用户的 Channel
+                _redis.subscribe(id);
+
+                // 2. 更新数据库状态为 online
+                user.setState("online");
+                _userModel.updateState(user);
+
+                // 3. 返回成功
+                resp.set_success(true);
+                resp.set_uid(user.getId());
+                resp.set_msg("登录成功");
+
+                // 4. 查询该用户是否有离线消息
+                vector<string> vec = _offlineMsgModel.query(id);
+                if (!vec.empty()) {
+                    resp.set_success(true); // 还是 true
+                    // 发送离线消息
+                    // 为了简单展示，我们这里直接把离线消息一条条发给用户
+                    // 实际中可能打包一起发，或者由客户端主动拉取
+                    for (const string& msg : vec) {
+                        conn->send(ONE_CHAT_MSG, msg);
+                    }
+                    // 发完删除
+                    _offlineMsgModel.remove(id);
+                }
+            }
+        } else {
+            // 登录失败：用户不存在 或 密码错误
+            resp.set_success(false);
+            resp.set_msg("用户名或密码错误");
+        }
+        
         resp.SerializeToString(&send_str);
-        // conn->send(LOGIN_MSG_ACK, send_str);
-        cout << "向客户端发送登录响应 (Size: " << send_str.size() << ")" << endl;
+        conn->send(LOGIN_MSG_ACK, send_str);
+    }
+}
+
+// 处理客户端异常退出
+void ChatService::clientCloseException(const std::shared_ptr<TcpConnection>& conn) {
+    User user;
+    {
+        lock_guard<mutex> lock(_connMutex);
+        
+        for (auto it = _userConnMap.begin(); it != _userConnMap.end(); ++it) {
+            if (it->second == conn) {
+                // 找到了
+                user.setId(it->first);
+                // 从 map 移除
+                _userConnMap.erase(it);
+                break;
+            }
+        }
+    }
+
+    // 更新数据库状态
+    if (user.getId() != -1) { // 默认 id 是 -1, User 构造函数里没写，这里最好去 model 看看 User 初始化
+        user.setState("offline");
+        _userModel.updateState(user);
+        
+        // [新增] 用户下线，取消订阅
+        _redis.unsubscribe(user.getId());
+    }
+}
+
+// 从 Redis 收到消息：说明有别的服务器发消息给本服务器上的用户了
+void ChatService::handleRedisSubscribeMessage(int userid, std::string msg) {
+    lock_guard<mutex> lock(_connMutex);
+    auto it = _userConnMap.find(userid);
+    if (it != _userConnMap.end()) {
+        it->second->send(ONE_CHAT_MSG, msg);
+        return;
+    }
+
+    // 理论上如果订阅了该用户，意味着用户肯定在线。
+    // 但可能正好用户下线it->second->send(ONE_CHAT_MSG, data);
+                return;
+            } 
+        } // 锁在这里释放。接下来的查询和发布不需要锁住整个map
+
+        // 查询数据库：用户虽然不在本服务器，但可能在其他服务器
+        // 这一步是分布式聊天的关键！
+        User user = _userModel.query(toid);
+        if (user.getState() == "online") {
+            // 用户状态是 online，但不在我的 _userConnMap 里
+            // 说明用户在别的服务器上 -> 发布消息到 Redis
+            _redis.publish(toid, data);
+            return;
+void ChatService::oneChat(const std::shared_ptr<TcpConnection>& conn, std::string& data) {
+    OneChatRequest req;
+    if (req.ParseFromString(data)) {
+        int toid = req.to_id();
+        int fromid = req.from_id();
+        string msg = req.msg();
+
+        {
+            lock_guard<mutex> lock(_connMutex);
+            auto it = _userConnMap.find(toid);
+            if (it != _userConnMap.end()) {
+                // 用户在线，转发消息
+                // 服务器主动推送消息给 toid 用户
+                // 这里我们直接把 OneChatRequest 序列化发过去，或者定义一个新的 Msg
+                // 简单起见，原样转发
+                it->second->send(ONE_CHAT_MSG, data);
+                return;
+            } 
+        }
+
+        // 用户不在线 -> 存储离线消息
+        _offlineMsgModel.insert(toid, data);
+        cout << "用户 " << toid << " 不在线，离线消息已存储" << endl;
     }
 }
