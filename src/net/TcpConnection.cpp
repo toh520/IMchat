@@ -1,6 +1,8 @@
 #include "net/TcpConnection.h"
-#include "net/Socket.h" // 确保包含 Socket 定义
-#include "msg.pb.h"     // [新增] 引入 Protobuf 生成的头文件
+#include "net/Socket.h" 
+// [修正] 因为 CMake 包含了 proto 目录，所以直接引用文件名即可，不要加 proto/ 前缀
+#include "msg.pb.h" 
+#include "server/chatservice.hpp"
 #include <iostream>
 #include <unistd.h>
 #include <cstring>      // memcpy
@@ -27,6 +29,7 @@ void TcpConnection::onRead() {
         // [核心逻辑] 循环处理 Buffer 中的数据，解决粘包
         while (true) {
             // 第一步：检查 Buffer 里的数据够不够解析出一个包头 (4字节)
+            // 包头存放整个包的长度
             if (readBuffer_.readableBytes() < 4) {
                 break; // 数据不够，等待下次读取
             }
@@ -40,7 +43,7 @@ void TcpConnection::onRead() {
             len = ntohl(len);
 
             // 安全检查：如果长度非常离谱（比如过大），可能是恶意攻击
-            if (len < 0 || len > 65536) {
+            if (len < 4 || len > 65536) { // 最小长度是4 (只有MsgID，没有包体)
                 std::cout << "错误：非法的数据包长度 " << len << "，关闭连接" << std::endl;
                 epoll_->updateChannel(socket_->getFd(), EPOLL_CTL_DEL, 0);
                 if (closeCallback_) closeCallback_(socket_->getFd());
@@ -55,25 +58,27 @@ void TcpConnection::onRead() {
 
             // --- 数据完整，开始拆包 ---
 
-            // 1. 先移除 4 字节的包头
+            // 1. 先移除 4 字节的包头 (Length)
             readBuffer_.retrieve(4);
 
-            // 2. 取出 len 字节的包体数据
-            std::string data = readBuffer_.retrieveAsString(len);
+            // 2. 再解析 4 字节的 MsgID (业务类型)
+            int32_t msgid;
+            std::string msgidStr = readBuffer_.retrieveAsString(4);
+            memcpy(&msgid, msgidStr.data(), 4);
+            msgid = ntohl(msgid);
 
-            // 3. 反序列化 Protobuf
-            chat::LoginRequest req;
-            if (req.ParseFromString(data)) {
-                std::cout << "【收到完整数据包】" << std::endl;
-                std::cout << "  用户: " << req.username() << std::endl;
-                std::cout << "  密码: " << req.password() << std::endl;
-                
-                // 这里可以添加业务逻辑：验证密码、回复 LoginResponse 等
-            } else {
-                std::cout << "Protobuf 解析失败！" << std::endl;
-            }
+            // 3. 最后取出剩下的数据 (Protobuf 序列化后的数据)
+            // 包体总长度 len - 4 (MsgID占用的长度)
+            std::string data = readBuffer_.retrieveAsString(len - 4);
 
-            // 继续循环，看看 Buffer 里是否还有下一个包
+            std::cout << "收到数据: MsgID=" << msgid << " DataLen=" << data.size() << std::endl;
+
+            // 4. [关键] 调用业务层进行分发处理
+            // 获取对应消息id的处理器
+            auto handler = ChatService::instance()->getHandler(msgid);
+            
+            // 把当前连接对象(shared_ptr)和数据传给业务层
+            handler(shared_from_this(), data);
         }
     } 
     else if (n == 0) {
@@ -85,5 +90,15 @@ void TcpConnection::onRead() {
     }
     else {
         std::cout << "TcpConnection 读取数据出错！errno=" << saveErrno << std::endl;
+    }
+}
+
+// 发送数据的方法
+void TcpConnection::send(std::string msg) {
+    if (socket_->getFd() != -1) {
+        ssize_t n = write(socket_->getFd(), msg.c_str(), msg.size());
+        if (n == -1) {
+             std::cout << "TcpConnection 发送数据失败" << std::endl;
+        }
     }
 }

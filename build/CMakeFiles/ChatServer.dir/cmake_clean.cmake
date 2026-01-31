@@ -19,6 +19,10 @@ file(REMOVE_RECURSE
   "CMakeFiles/ChatServer.dir/src/net/TcpConnection.cpp.o.d"
   "CMakeFiles/ChatServer.dir/src/server/ChatServer.cpp.o"
   "CMakeFiles/ChatServer.dir/src/server/ChatServer.cpp.o.d"
+  "CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.o"
+  "CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.o.d"
+  "CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.o"
+  "CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.o.d"
 )
 
 # Per-language clean rules from dependency scanning.

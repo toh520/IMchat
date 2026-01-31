@@ -17,6 +17,8 @@ set(CMAKE_DEPENDS_DEPENDENCY_FILES
   "/home/toh/ChatServer/src/net/Socket.cpp" "CMakeFiles/ChatServer.dir/src/net/Socket.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/net/Socket.cpp.o.d"
   "/home/toh/ChatServer/src/net/TcpConnection.cpp" "CMakeFiles/ChatServer.dir/src/net/TcpConnection.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/net/TcpConnection.cpp.o.d"
   "/home/toh/ChatServer/src/server/ChatServer.cpp" "CMakeFiles/ChatServer.dir/src/server/ChatServer.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/server/ChatServer.cpp.o.d"
+  "/home/toh/ChatServer/src/server/chatservice.cpp" "CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.o.d"
+  "/home/toh/ChatServer/src/server/model/UserModel.cpp" "CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.o" "gcc" "CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.o.d"
   )
 
 # Targets to which this target links.

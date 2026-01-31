@@ -345,6 +345,54 @@ src/server/ChatServer.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/server/ChatServer.cpp.s
 .PHONY : src/server/ChatServer.cpp.s
 
+src/server/chatservice.o: src/server/chatservice.cpp.o
+.PHONY : src/server/chatservice.o
+
+# target to build an object file
+src/server/chatservice.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.o
+.PHONY : src/server/chatservice.cpp.o
+
+src/server/chatservice.i: src/server/chatservice.cpp.i
+.PHONY : src/server/chatservice.i
+
+# target to preprocess a source file
+src/server/chatservice.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.i
+.PHONY : src/server/chatservice.cpp.i
+
+src/server/chatservice.s: src/server/chatservice.cpp.s
+.PHONY : src/server/chatservice.s
+
+# target to generate assembly for a file
+src/server/chatservice.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.s
+.PHONY : src/server/chatservice.cpp.s
+
+src/server/model/UserModel.o: src/server/model/UserModel.cpp.o
+.PHONY : src/server/model/UserModel.o
+
+# target to build an object file
+src/server/model/UserModel.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.o
+.PHONY : src/server/model/UserModel.cpp.o
+
+src/server/model/UserModel.i: src/server/model/UserModel.cpp.i
+.PHONY : src/server/model/UserModel.i
+
+# target to preprocess a source file
+src/server/model/UserModel.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.i
+.PHONY : src/server/model/UserModel.cpp.i
+
+src/server/model/UserModel.s: src/server/model/UserModel.cpp.s
+.PHONY : src/server/model/UserModel.s
+
+# target to generate assembly for a file
+src/server/model/UserModel.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/ChatServer.dir/build.make CMakeFiles/ChatServer.dir/src/server/model/UserModel.cpp.s
+.PHONY : src/server/model/UserModel.cpp.s
+
 # Help Target
 help:
 	@echo "The following are some of the valid targets for this Makefile:"
@@ -381,6 +429,12 @@ help:
 	@echo "... src/server/ChatServer.o"
 	@echo "... src/server/ChatServer.i"
 	@echo "... src/server/ChatServer.s"
+	@echo "... src/server/chatservice.o"
+	@echo "... src/server/chatservice.i"
+	@echo "... src/server/chatservice.s"
+	@echo "... src/server/model/UserModel.o"
+	@echo "... src/server/model/UserModel.i"
+	@echo "... src/server/model/UserModel.s"
 .PHONY : help
 
 
