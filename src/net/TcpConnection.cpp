@@ -26,11 +26,15 @@ void TcpConnection::onRead() {
     ssize_t n = readBuffer_.readFd(socket_->getFd(), &saveErrno);
 
     if (n > 0) {
+        // [DEBUG] 打印接收到的数据长度
+        std::cout << "[DEBUG] Received " << n << " bytes. Buffer readable: " << readBuffer_.readableBytes() << std::endl;
+
         // [核心逻辑] 循环处理 Buffer 中的数据，解决粘包
         while (true) {
             // 第一步：检查 Buffer 里的数据够不够解析出一个包头 (4字节)
             // 包头存放整个包的长度
             if (readBuffer_.readableBytes() < 4) {
+                std::cout << "[DEBUG] Buffer data < 4 bytes, waiting..." << std::endl;
                 break; // 数据不够，等待下次读取
             }
 
@@ -40,7 +44,14 @@ void TcpConnection::onRead() {
             // 使用 memcpy 避免字节对齐问题
             memcpy(&len, readBuffer_.peek(), 4);
             // 网络字节序(大端) 转 主机字节序(小端)
+            int32_t net_len = len; // 保存网络序以便调试
             len = ntohl(len);
+
+            // [DEBUG] 打印头部信息
+            std::cout << "[DEBUG] Header raw: " << std::hex << net_len << std::dec 
+                      << ", Parsed len: " << len 
+                      << ", Needed total: " << (4 + len) 
+                      << ", Readable: " << readBuffer_.readableBytes() << std::endl;
 
             // 安全检查：如果长度非常离谱（比如过大），可能是恶意攻击
             if (len < 4 || len > 65536) { // 最小长度是4 (只有MsgID，没有包体)

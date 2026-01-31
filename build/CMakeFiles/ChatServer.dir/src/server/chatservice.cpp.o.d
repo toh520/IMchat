@@ -286,6 +286,7 @@ CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.o: \
  /usr/include/google/protobuf/extension_set.h /usr/include/c++/11/cassert \
  /home/toh/ChatServer/include/server/model/UserModel.hpp \
  /home/toh/ChatServer/include/server/model/User.hpp \
+ /home/toh/ChatServer/include/server/model/offlinemessagemodel.hpp \
  /home/toh/ChatServer/include/net/TcpConnection.h \
  /home/toh/ChatServer/include/net/Socket.h /usr/include/arpa/inet.h \
  /usr/include/netinet/in.h /usr/include/x86_64-linux-gnu/sys/socket.h \
@@ -309,4 +310,15 @@ CMakeFiles/ChatServer.dir/src/server/chatservice.cpp.o: \
  /usr/include/x86_64-linux-gnu/sys/epoll.h \
  /usr/include/x86_64-linux-gnu/bits/epoll.h \
  /home/toh/ChatServer/include/net/Buffer.h \
+ /home/toh/ChatServer/include/server/ThreadPool.hpp \
+ /usr/include/c++/11/queue /usr/include/c++/11/deque \
+ /usr/include/c++/11/bits/stl_deque.h /usr/include/c++/11/bits/deque.tcc \
+ /usr/include/c++/11/bits/stl_queue.h /usr/include/c++/11/thread \
+ /usr/include/c++/11/bits/std_thread.h \
+ /usr/include/c++/11/bits/this_thread_sleep.h \
+ /usr/include/c++/11/condition_variable /usr/include/c++/11/future \
+ /usr/include/c++/11/bits/atomic_futex.h \
+ /home/toh/ChatServer/include/db/Redis.h /usr/include/hiredis/hiredis.h \
+ /usr/include/hiredis/read.h /usr/include/x86_64-linux-gnu/sys/time.h \
+ /usr/include/hiredis/sds.h /usr/include/hiredis/alloc.h \
  /home/toh/ChatServer/include/public.hpp

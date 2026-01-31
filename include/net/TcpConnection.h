@@ -1,8 +1,9 @@
 #pragma once
-#include <memory> // [关键] 必须包含
+#include <memory>
 #include <functional>
 #include <string>
-#include "net/Socket.h"
+#include <mutex> // [修复] 补上 mutex 头文件
+#include "net/Socket.h" // 确保这些头文件里没有循环引用
 #include "net/Epoll.h"
 #include "net/Buffer.h"
 

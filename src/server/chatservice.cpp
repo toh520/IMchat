@@ -1,5 +1,6 @@
 #include "server/chatservice.hpp"
 #include "public.hpp"
+#include "msg.pb.h"
 #include <iostream>
 
 using namespace std;
@@ -213,19 +214,12 @@ void ChatService::handleRedisSubscribeMessage(int userid, std::string msg) {
     }
 
     // 理论上如果订阅了该用户，意味着用户肯定在线。
-    // 但可能正好用户下线it->second->send(ONE_CHAT_MSG, data);
-                return;
-            } 
-        } // 锁在这里释放。接下来的查询和发布不需要锁住整个map
+    // 但可能正好用户下线了，消息刚到，这时候可以选择存离线，或者丢弃
+    // 这里简单起见，存储离线消息
+    _offlineMsgModel.insert(userid, msg);
+}
 
-        // 查询数据库：用户虽然不在本服务器，但可能在其他服务器
-        // 这一步是分布式聊天的关键！
-        User user = _userModel.query(toid);
-        if (user.getState() == "online") {
-            // 用户状态是 online，但不在我的 _userConnMap 里
-            // 说明用户在别的服务器上 -> 发布消息到 Redis
-            _redis.publish(toid, data);
-            return;
+// 一对一聊天业务
 void ChatService::oneChat(const std::shared_ptr<TcpConnection>& conn, std::string& data) {
     OneChatRequest req;
     if (req.ParseFromString(data)) {
@@ -238,16 +232,22 @@ void ChatService::oneChat(const std::shared_ptr<TcpConnection>& conn, std::strin
             auto it = _userConnMap.find(toid);
             if (it != _userConnMap.end()) {
                 // 用户在线，转发消息
-                // 服务器主动推送消息给 toid 用户
-                // 这里我们直接把 OneChatRequest 序列化发过去，或者定义一个新的 Msg
-                // 简单起见，原样转发
                 it->second->send(ONE_CHAT_MSG, data);
                 return;
             } 
+        } // 锁在这里释放
+
+        // 查询数据库：用户虽然不在本服务器，但可能在其他服务器
+        // 这一步是分布式聊天的关键！
+        User user = _userModel.query(toid);
+        if (user.getState() == "online") {
+            // 用户状态是 online，但不在我的 _userConnMap 里
+            // 说明用户在别的服务器上 -> 发布消息到 Redis
+            _redis.publish(toid, data);
+            return;
         }
 
         // 用户不在线 -> 存储离线消息
         _offlineMsgModel.insert(toid, data);
-        cout << "用户 " << toid << " 不在线，离线消息已存储" << endl;
     }
 }

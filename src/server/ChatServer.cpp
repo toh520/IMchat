@@ -1,4 +1,5 @@
 #include "server/ChatServer.h"
+#include "server/chatservice.hpp" // [修复] 引入业务类头文件
 #include <iostream>
 #include <cstring>
 #include <functional> // for std::bind
