@@ -28,6 +28,10 @@ ChatService::ChatService() {
     // 一对一聊天业务管理
     _msgHandlerMap.insert({ONE_CHAT_MSG, std::bind(&ChatService::oneChat, this, std::placeholders::_1, std::placeholders::_2)});
 
+    // [新增] 只有在构造时重置一次所有用户状态为 offline
+    // 防止服务器崩溃重启后，状态仍为 online 导致无法登录
+    _userModel.resetState();
+
     // 连接 Redis
     if (_redis.connect()) {
         // 设置上报消息的回调
@@ -151,20 +155,6 @@ void ChatService::login(const std::shared_ptr<TcpConnection>& conn, std::string&
                 resp.set_success(true);
                 resp.set_uid(user.getId());
                 resp.set_msg("登录成功");
-
-                // 4. 查询该用户是否有离线消息
-                vector<string> vec = _offlineMsgModel.query(id);
-                if (!vec.empty()) {
-                    resp.set_success(true); // 还是 true
-                    // 发送离线消息
-                    // 为了简单展示，我们这里直接把离线消息一条条发给用户
-                    // 实际中可能打包一起发，或者由客户端主动拉取
-                    for (const string& msg : vec) {
-                        conn->send(ONE_CHAT_MSG, msg);
-                    }
-                    // 发完删除
-                    _offlineMsgModel.remove(id);
-                }
             }
         } else {
             // 登录失败：用户不存在 或 密码错误
@@ -174,6 +164,17 @@ void ChatService::login(const std::shared_ptr<TcpConnection>& conn, std::string&
         
         resp.SerializeToString(&send_str);
         conn->send(LOGIN_MSG_ACK, send_str);
+
+        // 4. 如果登录成功，再推送离线消息
+        if (resp.success()) {
+            vector<string> vec = _offlineMsgModel.query(id);
+            if (!vec.empty()) {
+                for (const string& msg : vec) {
+                    conn->send(ONE_CHAT_MSG, msg);
+                }
+                _offlineMsgModel.remove(id);
+            }
+        }
     }
 }
 

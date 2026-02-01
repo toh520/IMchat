@@ -94,15 +94,22 @@ void MainWindow::handleLoginResponse(const QByteArray &data)
     chat::LoginResponse resp;
     if (resp.ParseFromString(data.toStdString())) {
         if (resp.success()) {
-            QMessageBox::information(this, "成功", "登录成功");
             
             // 跳转到聊天界面
+            // [Fix] 先初始化 ChatWindow，注册 MessageHandler。
+            // 否则如果在 QMessageBox 阻塞期间收到离线消息，会导致
+            // 1. 没有 Handler 被丢弃
+            // 2. 或者积压在 Buffer 中直到下一条消息触发 readyRead
             if (!m_chatWindow) {
                 m_chatWindow = new ChatWindow();
             }
             m_chatWindow->setMyInfo(resp.uid(), m_edtUser->text());
             m_chatWindow->show();
             this->hide();
+
+            // 登录成功提示（可选，放在 show 之后体验更好，或者直接去掉）
+            // QMessageBox::information(this, "成功", "登录成功");
+
         } else {
             QMessageBox::critical(this, "失败", QString::fromStdString(resp.msg()));
         }

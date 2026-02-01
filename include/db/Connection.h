@@ -14,6 +14,9 @@ public:
     // 执行更新操作 (Insert, Update, Delete)
     bool update(std::string sql);
 
+    // [新增] 获取上一次插入操作生成的自增主键ID
+    int getInsertId() const { return mysql_insert_id(conn_); }
+
     // 执行查询操作 (Select)
     MYSQL_RES* query(std::string sql);
 

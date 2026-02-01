@@ -18,9 +18,8 @@ bool UserModel::insert(User& user) {
     if (sp) {
         // 3. 执行 SQL
         if (sp->update(sql)) {
-            // 获取插入成功的用户主键ID (mysql_insert_id)
-            // 这里我们需要在 Connection 类里补一个获取 ID 的方法，暂时先留空，只要返回 true 就行
-            // user.setId(...); 
+            // [修复] 获取插入成功的用户主键ID，赋值给 user 对象
+            user.setId(sp->getInsertId()); 
             return true;
         }
     }
