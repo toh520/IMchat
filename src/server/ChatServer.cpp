@@ -2,6 +2,7 @@
 #include "server/chatservice.hpp" // [修复] 引入业务类头文件
 #include <iostream>
 #include <cstring>
+#include <cerrno>
 #include <functional> // for std::bind
 #include <thread> // [新增]
 #include <unistd.h>
@@ -46,24 +47,35 @@ void ChatServer::start() {
             if (fd == listener_->getFd()) {
                 handleNewConnection();
             }
-            // 情况 B: 客户端连接有动静 -> 处理数据
-            else if (event.events & EPOLLIN) {
+            else {
                 // [加锁] 保护 connections_ 的读取
                 TcpConnection::ptr conn = nullptr;
                 {
                     std::lock_guard<std::mutex> lock(connMutex_);
-                    if (connections_.count(fd)) {
-                        conn = connections_[fd];
+                    auto it = connections_.find(fd);
+                    if (it != connections_.end()) {
+                        conn = it->second;
                     }
                 }
 
-                // 从 map 找到对应的连接对象
-                if (conn) {
-                    conn->onRead();
-                } else {
-                    // 防御性编程：理论上不该进这里，除非 map 没同步
+                if (!conn) {
                     epoll_->updateChannel(fd, EPOLL_CTL_DEL, 0);
                     close(fd);
+                    continue;
+                }
+
+                // 优先处理异常/对端半关闭事件
+                if (event.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
+                    conn->onRead();
+                    continue;
+                }
+
+                if (event.events & EPOLLIN) {
+                    conn->onRead();
+                }
+
+                if (event.events & EPOLLOUT) {
+                    conn->onWrite();
                 }
             }
         }
@@ -71,30 +83,40 @@ void ChatServer::start() {
 }
 
 void ChatServer::handleNewConnection() {
-    struct sockaddr_in addr;
-    int clnt_fd = listener_->accept(&addr);
-    
-    if (clnt_fd == -1) return;
+    // ET 模式下必须把 accept 队列“读空”，直到 EAGAIN/EWOULDBLOCK
+    while (true) {
+        struct sockaddr_in addr;
+        int clnt_fd = listener_->accept(&addr);
 
-    // 创建连接对象
-    auto conn = std::make_shared<TcpConnection>(epoll_.get(), clnt_fd);
+        if (clnt_fd == -1) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                break; // 已经没有待处理的新连接
+            }
+            if (errno == EINTR) {
+                continue; // 被信号中断，重试 accept
+            }
+            std::cout << "accept error, errno=" << errno << std::endl;
+            break;
+        }
 
-    // [关键] 设置关闭回调
-    // 当 TcpConnection 发现客户端断开时，会调用 ChatServer::handleClientDisconnect
-    conn->setCloseCallback(std::bind(&ChatServer::handleClientDisconnect, this, std::placeholders::_1));
+        // 创建连接对象
+        auto conn = std::make_shared<TcpConnection>(epoll_.get(), clnt_fd);
 
-    // 存入 map
-    {
-        std::lock_guard<std::mutex> lock(connMutex_);
-        connections_[clnt_fd] = conn;
+        // [关键] 设置关闭回调
+        // 当 TcpConnection 发现客户端断开时，会调用 ChatServer::handleClientDisconnect
+        conn->setCloseCallback(std::bind(&ChatServer::handleClientDisconnect, this, std::placeholders::_1));
+
+        // 存入 map
+        {
+            std::lock_guard<std::mutex> lock(connMutex_);
+            connections_[clnt_fd] = conn;
+        }
+
+        // 加入 Epoll
+        epoll_->updateChannel(clnt_fd, EPOLL_CTL_ADD, EPOLLIN | EPOLLET | EPOLLRDHUP);
+
+        std::cout << "新连接建立 fd=" << clnt_fd << " 当前在线(Roughly): " << connections_.size() << std::endl;
     }
-
-    // 加入 Epoll
-    epoll_->updateChannel(clnt_fd, EPOLL_CTL_ADD, EPOLLIN | EPOLLET);
-    
-    // [修正] 这里为了避免死锁，直接从 connMutex_ 保护的范围外读取 size 
-    // 或者允许 connections_.size() 的轻微不一致，这里直接在锁内打印，但 connections_ 已经在锁内了
-    std::cout << "新连接建立 fd=" << clnt_fd << " 当前在线(Roughly): " << connections_.size() << std::endl;
 }
 
 void ChatServer::handleClientDisconnect(int fd) {

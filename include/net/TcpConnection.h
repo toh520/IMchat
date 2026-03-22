@@ -2,6 +2,7 @@
 #include <memory>
 #include <functional>
 #include <string>
+#include <atomic>
 #include <mutex> // [修复] 补上 mutex 头文件
 #include "net/Socket.h" // 确保这些头文件里没有循环引用
 #include "net/Epoll.h"
@@ -18,6 +19,7 @@ public:
     ~TcpConnection();
 
     void onRead();
+    void onWrite();
 
     // [新增] 刷新最后活跃时间
     void refreshAliveTime();
@@ -35,6 +37,11 @@ public:
 private:
     // 保护发送操作的互斥锁（因为多线程业务可能同时调用 send）
     std::mutex sendMutex_;
+
+    // 发送缓冲区：当非阻塞 write 发生 EAGAIN/部分写时，剩余数据先入队
+    std::string writeBuffer_;
+    bool writeEventEnabled_;
+    std::atomic_bool closed_;
 
     Epoll* epoll_;
     std::unique_ptr<Socket> socket_;
