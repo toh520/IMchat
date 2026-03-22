@@ -34,6 +34,9 @@ public:
     // 处理一对一聊天业务
     void oneChat(const std::shared_ptr<TcpConnection>& conn, std::string& data);
 
+    // [新增] 处理心跳业务
+    void clientHeartBeat(const std::shared_ptr<TcpConnection>& conn, std::string& data);
+
     // 处理客户端异常退出
     void clientCloseException(const std::shared_ptr<TcpConnection>& conn);
     

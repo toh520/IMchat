@@ -1,6 +1,8 @@
 #include "usermanager.h"
+#include "public.h" // 引入协议头文件
 #include <QtEndian> // qToBigEndian
 #include <QDataStream>
+#include <QDebug>
 
 UserManager& UserManager::instance()
 {
@@ -11,9 +13,36 @@ UserManager& UserManager::instance()
 UserManager::UserManager(QObject *parent) : QObject(parent)
 {
     m_socket = new QTcpSocket(this);
+    m_heartBeatTimer = new QTimer(this);
+    m_reconnectTimer = new QTimer(this);
 
-    // [修改] 连接 lambda，处理连接成功后的队列发送
+    // [新增] 配置定时器
+    // 心跳间隔 3s，比服务端的 30s 宽裕很多
+    m_heartBeatTimer->setInterval(3000); 
+    connect(m_heartBeatTimer, &QTimer::timeout, this, [this](){
+        // 发送心跳包
+        // 心跳包 MsgID=HEART_BEAT_MSG(4), Data="" (Empty)
+        this->send(HEART_BEAT_MSG, "");
+        // qDebug() << "[HeartBeat] Sent ping to server...";
+    });
+
+    // 重连间隔 2s
+    m_reconnectTimer->setInterval(2000);
+    connect(m_reconnectTimer, &QTimer::timeout, [this](){
+        if(m_socket->state() == QAbstractSocket::UnconnectedState && !m_isConnecting) {
+            qDebug() << "[Reconnect] Trying to reconnect to " << m_serverIp << ":" << m_serverPort;
+            m_isConnecting = true;
+            m_socket->connectToHost(m_serverIp, m_serverPort);
+        }
+    });
+
+    // 连接成功
     connect(m_socket, &QTcpSocket::connected, [this]() {
+        qDebug() << "[UserManager] Connected to server!";
+        m_isConnecting = false;
+        m_reconnectTimer->stop();   // 停止重连定时器
+        m_heartBeatTimer->start();  // 开始发送心跳
+        
         emit connected(); // 转发信号
         
         // 检查队列是否有未发送的数据
@@ -27,12 +56,23 @@ UserManager::UserManager(QObject *parent) : QObject(parent)
         }
     });
     
-    connect(m_socket, &QTcpSocket::disconnected, this, &UserManager::disconnected);
+    // 连接断开 (被动断开或网络故障)
+    connect(m_socket, &QTcpSocket::disconnected, [this]() {
+        qDebug() << "[UserManager] Disconnected from server!";
+        m_isConnecting = false;
+        m_heartBeatTimer->stop();   // 停止心跳
+        m_reconnectTimer->start();  // 开启重连
+        emit disconnected();
+    });
+
     connect(m_socket, &QTcpSocket::readyRead, this, &UserManager::onReadyRead);
 }
 
 void UserManager::connectToServer(const QString &ip, quint16 port)
 {
+    m_serverIp = ip;
+    m_serverPort = port;
+
     // 如果之前连着，先断开
     if (m_socket->state() == QAbstractSocket::ConnectedState) {
         m_socket->disconnectFromHost();

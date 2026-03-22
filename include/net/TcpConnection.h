@@ -19,6 +19,11 @@ public:
 
     void onRead();
 
+    // [新增] 刷新最后活跃时间
+    void refreshAliveTime();
+    // [新增] 获取最后活跃时间
+    time_t getAliveTime() const { return lastActiveTime_; }
+
     // [新增] 发送数据的方法 (业务层会调用这个)
     // 直接发送 string 数据
     void send(std::string msg);
@@ -34,5 +39,9 @@ private:
     Epoll* epoll_;
     std::unique_ptr<Socket> socket_;
     Buffer readBuffer_;
+    
+    // [新增] 记录最后活跃时间戳
+    time_t lastActiveTime_;
+
     CloseCallback closeCallback_;
 };

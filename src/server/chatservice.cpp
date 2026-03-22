@@ -28,6 +28,9 @@ ChatService::ChatService() {
     // 一对一聊天业务管理
     _msgHandlerMap.insert({ONE_CHAT_MSG, std::bind(&ChatService::oneChat, this, std::placeholders::_1, std::placeholders::_2)});
 
+    // [新增] 注册心跳消息处理
+    _msgHandlerMap.insert({HEART_BEAT_MSG, std::bind(&ChatService::clientHeartBeat, this, std::placeholders::_1, std::placeholders::_2)});
+
     // [新增] 只有在构造时重置一次所有用户状态为 offline
     // 防止服务器崩溃重启后，状态仍为 online 导致无法登录
     _userModel.resetState();
@@ -251,4 +254,12 @@ void ChatService::oneChat(const std::shared_ptr<TcpConnection>& conn, std::strin
         // 用户不在线 -> 存储离线消息
         _offlineMsgModel.insert(toid, data);
     }
+}
+
+// [新增] 处理客户端心跳
+// 实际上这里不需要做太多业务逻辑，因为 TcpConnection::onRead 每次读到数据都会刷新 lastActiveTime
+// 这里只是为了响应 MSGID，避免 "can not find handler" 报错
+void ChatService::clientHeartBeat(const std::shared_ptr<TcpConnection>& conn, std::string& data) {
+    // printf("Heartbeat from fd=%d\n", conn->fd());
+    // 可以在这里回复一个 HEART_BEAT_ACK，也可以不回复（单向心跳）
 }

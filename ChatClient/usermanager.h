@@ -4,6 +4,7 @@
 #include <QObject>
 #include <QTcpSocket>
 #include <QByteArray>
+#include <QTimer> // [新增]
 #include <functional>
 #include "msg.pb.h" // protoc 生成的头文件
 
@@ -19,6 +20,8 @@ public:
     // 连接服务器
     void connectToServer(const QString &ip, quint16 port);
 
+    // [新增] 开启断线自动重连功能？(Demo中默认开启)
+    
     // 发送消息通用接口
     // msgid: 消息ID
     // data: 序列化后的 Protobuf 数据
@@ -58,6 +61,16 @@ private:
 
     // 消息回调映射表
     std::map<int, MsgHandler> m_handlers;
+
+    // [新增] 心跳定时器
+    QTimer *m_heartBeatTimer;
+    // [新增] 重连定时器
+    QTimer *m_reconnectTimer;
+    
+    // [新增] 记录连接目标
+    QString m_serverIp;
+    quint16 m_serverPort;
+    bool m_isConnecting = false;
 };
 
 #endif // USERMANAGER_H

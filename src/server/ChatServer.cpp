@@ -3,6 +3,7 @@
 #include <iostream>
 #include <cstring>
 #include <functional> // for std::bind
+#include <thread> // [新增]
 #include <unistd.h>
 
 ChatServer::ChatServer(int port) : port_(port) {
@@ -29,9 +30,14 @@ ChatServer::~ChatServer() {
 void ChatServer::start() {
     std::cout << "ChatServer 服务已启动..." << std::endl;
 
+    // [新增] 启动后台心跳检测线程
+    std::thread checkThread(std::bind(&ChatServer::checkConnectionTask, this));
+    checkThread.detach();
+
     while (true) {
         // 等待事件
         auto events = epoll_->poll();
+
 
         for (auto& event : events) {
             int fd = event.data.fd;
@@ -42,9 +48,18 @@ void ChatServer::start() {
             }
             // 情况 B: 客户端连接有动静 -> 处理数据
             else if (event.events & EPOLLIN) {
+                // [加锁] 保护 connections_ 的读取
+                TcpConnection::ptr conn = nullptr;
+                {
+                    std::lock_guard<std::mutex> lock(connMutex_);
+                    if (connections_.count(fd)) {
+                        conn = connections_[fd];
+                    }
+                }
+
                 // 从 map 找到对应的连接对象
-                if (connections_.count(fd)) {
-                    connections_[fd]->onRead();
+                if (conn) {
+                    conn->onRead();
                 } else {
                     // 防御性编程：理论上不该进这里，除非 map 没同步
                     epoll_->updateChannel(fd, EPOLL_CTL_DEL, 0);
@@ -69,20 +84,66 @@ void ChatServer::handleNewConnection() {
     conn->setCloseCallback(std::bind(&ChatServer::handleClientDisconnect, this, std::placeholders::_1));
 
     // 存入 map
-    connections_[clnt_fd] = conn;
+    {
+        std::lock_guard<std::mutex> lock(connMutex_);
+        connections_[clnt_fd] = conn;
+    }
 
     // 加入 Epoll
     epoll_->updateChannel(clnt_fd, EPOLL_CTL_ADD, EPOLLIN | EPOLLET);
-
-    std::cout << "新连接建立 fd=" << clnt_fd << " 当前在线: " << connections_.size() << std::endl;
+    
+    // [修正] 这里为了避免死锁，直接从 connMutex_ 保护的范围外读取 size 
+    // 或者允许 connections_.size() 的轻微不一致，这里直接在锁内打印，但 connections_ 已经在锁内了
+    std::cout << "新连接建立 fd=" << clnt_fd << " 当前在线(Roughly): " << connections_.size() << std::endl;
 }
 
 void ChatServer::handleClientDisconnect(int fd) {
+    TcpConnection::ptr conn = nullptr;
+    
+    {
+        std::lock_guard<std::mutex> lock(connMutex_);
+        auto it = connections_.find(fd);
+        if (it != connections_.end()) {
+            conn = it->second;
+            connections_.erase(it);
+        }
+    }
+    
     // [新增] 通知业务层处理客户端异常退出 (比如把用户状态改为 offline)
     // 这里需要 ChatService 提供一个处理客户端异常退出的接口
-    ChatService::instance()->clientCloseException(connections_[fd]);
+    if (conn) {
+        ChatService::instance()->clientCloseException(conn);
+    }
 
-    // 从 map 中移除，智能指针引用计数归零 -> 自动析构 TcpConnection
-    connections_.erase(fd);
     std::cout << "客户端断开，已回收资源 fd=" << fd << " 当前在线: " << connections_.size() << std::endl;
+}
+// 定时任务：扫描所有超时连接并断开
+void ChatServer::checkConnectionTask() {
+    while (true) {
+        // 每 5 秒检查一次
+        sleep(5);
+        
+        time_t now = time(nullptr);
+        
+        // [加锁保护] - 这里的逻辑略复杂，因为我们不想一直长时间持有锁
+        // 方案：快速拷贝所有 snapshot，或者就在得锁期间处理
+        // 考虑到 demo，直接加锁遍历
+        std::vector<int> timeout_fds;
+        
+        {
+            std::lock_guard<std::mutex> lock(connMutex_);
+            for (auto it = connections_.begin(); it != connections_.end(); ++it) {
+                TcpConnection::ptr conn = it->second;
+                if (now - conn->getAliveTime() > 30) {
+                    timeout_fds.push_back(it->first);
+                }
+            }
+        } // 释放锁
+        
+        for (int fd : timeout_fds) {
+             std::cout << "[Heartbeat] Connection timeout fd=" << fd << ", kicking out..." << std::endl;
+             // shutdown 会触发主 loop 的 onRead -> read 0 -> handleClientDisconnect
+             shutdown(fd, SHUT_RDWR);
+        }
+    }
 }

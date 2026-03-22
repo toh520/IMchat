@@ -12,4 +12,7 @@ enum EnMsgType {
     REG_MSG_ACK,   // 注册响应消息
     
     ONE_CHAT_MSG,  // 聊天消息
+
+    // [新增] 
+    HEART_BEAT_MSG, // 心跳消息
 };

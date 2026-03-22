@@ -11,9 +11,14 @@
 TcpConnection::TcpConnection(Epoll* epoll, int fd) 
     : epoll_(epoll),
       socket_(std::make_unique<Socket>(fd)),
-      readBuffer_() 
+      readBuffer_(),
+      lastActiveTime_(time(nullptr)) // [Initialize] 初始化活跃时间
 {
     socket_->setNonBlocking();
+}
+
+void TcpConnection::refreshAliveTime() {
+    lastActiveTime_ = time(nullptr);
 }
 
 TcpConnection::~TcpConnection() {
@@ -26,6 +31,9 @@ void TcpConnection::onRead() {
     ssize_t n = readBuffer_.readFd(socket_->getFd(), &saveErrno);
 
     if (n > 0) {
+        // [新增] 只要读到数据，就更新活跃时间
+        refreshAliveTime();
+
         // [DEBUG] 打印接收到的数据长度
         std::cout << "[DEBUG] Received " << n << " bytes. Buffer readable: " << readBuffer_.readableBytes() << std::endl;
 
